@@ -35,15 +35,7 @@ impl Device {
     /// ```
     pub fn new(index: usize) -> io::Result<Self> {
         let path = format!("{}{}", "/dev/video", index);
-        let fd = v4l2::open(path, libc::O_RDWR | libc::O_NONBLOCK)?;
-
-        if fd == -1 {
-            return Err(io::Error::last_os_error());
-        }
-
-        Ok(Device {
-            handle: Arc::new(Handle::new(fd)),
-        })
+        Self::with_args(path, libc::O_RDWR | libc::O_NONBLOCK)
     }
 
     /// Returns a capture device by path
@@ -61,7 +53,27 @@ impl Device {
     /// let dev = Device::with_path("/dev/video0");
     /// ```
     pub fn with_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        let fd = v4l2::open(&path, libc::O_RDWR | libc::O_NONBLOCK)?;
+        Self::with_args(path, libc::O_RDWR | libc::O_NONBLOCK)
+    }
+
+    /// Returns a capture device by path with required args
+    ///
+    /// Linux device nodes are usually found in /dev/videoX or /sys/class/video4linux/videoX.
+    ///
+    /// Linux args are the ones for [open()](https://man7.org/linux/man-pages/man2/openat.2.html) (e.g O_RDONLY, O_RDWR)
+    /// # Arguments
+    ///
+    /// * `path` - Path (e.g. "/dev/video0")
+    /// * `args` - i32  (e.g. libc::O_RDONLY)
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use v4l::device::Device;
+    /// let dev = Device::with_args("/dev/video0", libc::O_RDWR | libc::O_NONBLOCKING);
+    /// ```
+    pub fn with_args<P: AsRef<Path>>(path: P, args: i32) -> io::Result<Self> {
+        let fd = v4l2::open(&path, args)?;
 
         if fd == -1 {
             return Err(io::Error::last_os_error());
